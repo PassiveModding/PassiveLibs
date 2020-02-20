@@ -31,7 +31,6 @@ namespace Disqord.Extensions.Parsers
             "%s's'",                //      1s
         };
 
-        // TODO: Compile these expressions
         private static readonly string TimeSpanExtendedCheck = @"[0-9dhms\-. DHMS]";
 
         private static readonly string TimeSpanDelimiter = @"(?<=[dhmsDHMS])";
@@ -52,7 +51,7 @@ namespace Disqord.Extensions.Parsers
                 }
 
                 // Attempt to parse values above what timespan regularly parses, ie. 24h => 1d is not normally possible.
-                if (!Regex.IsMatch(input, TimeSpanExtendedCheck))
+                if (!Regex.IsMatch(input, TimeSpanExtendedCheck, RegexOptions.Compiled))
                 {
                     return TypeParserResult<TimeSpan>.Unsuccessful("Failed to parse TimeSpan");
                 }
@@ -60,8 +59,8 @@ namespace Disqord.Extensions.Parsers
                 // remove spaces.
                 input = input.Replace(" ", "");
 
-                // Split string into identified values ie. "6d24h" => { "6d", "24h" }, removing empty entries
-                var splits = Regex.Split(input, TimeSpanDelimiter).Where(x => x != string.Empty).ToArray();
+                // Split string into identified values ie. "6d24h" => { "6d", "24h" }
+                var splits = Regex.Split(input, TimeSpanDelimiter, RegexOptions.Compiled);
 
                 // Somehow no results found.
                 if (splits.Length == 0)
@@ -70,11 +69,17 @@ namespace Disqord.Extensions.Parsers
                 }
                 else
                 {
+                    bool modified = false;
                     TimeSpan response = new TimeSpan();
                     foreach (var split in splits)
                     {
+                        if (split == string.Empty)
+                        {
+                            continue;
+                        }
+
                         // Split is only the delimiting character
-                        if (!Regex.IsMatch(split, TimeSpanDelimitedCheck))
+                        if (!Regex.IsMatch(split, TimeSpanDelimitedCheck, RegexOptions.Compiled))
                         {
                             return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{split}` is invalid.)");
                         }
@@ -89,6 +94,7 @@ namespace Disqord.Extensions.Parsers
                             return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{num}` is not of type `double`)");
                         }
 
+                        modified = true;
                         switch (lastChar.ToLower())
                         {
                             case "d":
@@ -112,7 +118,12 @@ namespace Disqord.Extensions.Parsers
                         }
                     }
 
-                    return TypeParserResult<TimeSpan>.Successful(response);
+                    if (modified)
+                    {
+                        return TypeParserResult<TimeSpan>.Successful(response);
+                    }
+
+                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (Timespan has no modifying arguments.)");
                 }
             }
         }
