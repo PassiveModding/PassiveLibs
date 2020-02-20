@@ -12,11 +12,11 @@ namespace Disqord.Extensions.Parsers
     /// </summary>
     public class TimeSpanParser : TypeParser<TimeSpan>
     {
-        private static readonly string TimeSpanExtendedCheck = @"[0-9dhms\-. ]";
+        private static readonly string TimeSpanExtendedCheck = @"\-?[0-9dhms. ]";
 
         private static readonly string TimeSpanDelimiter = @"(?<=[dhms])";
 
-        private static readonly string TimeSpanDelimitedCheck = @"^-?\d*\.?(\d*)+[dhms]$";
+        private static readonly string TimeSpanDelimitedCheck = @"^\d*\.?(\d*)+[dhms]$";
 
         public ValueTask<TypeParserResult<TimeSpan>> ParseAsync(string input)
         {
@@ -34,6 +34,12 @@ namespace Disqord.Extensions.Parsers
 
             // remove spaces.
             input = input.Replace(" ", "");
+            bool negative = false;
+            if (input.StartsWith("-"))
+            {
+                negative = true;
+                input = input.Substring(1);
+            }
 
             // Split string into identified values ie. "6d24h" => { "6d", "24h" }
             var splits = Regex.Split(input, TimeSpanDelimiter, RegexOptions.Compiled);
@@ -118,6 +124,10 @@ namespace Disqord.Extensions.Parsers
             // Check to see if any of the methods were hit.
             if (d || h || m || s)
             {
+                if (negative)
+                {
+                    return TypeParserResult<TimeSpan>.Successful(-response);
+                }
                 return TypeParserResult<TimeSpan>.Successful(response);
             }
 
