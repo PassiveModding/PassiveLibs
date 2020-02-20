@@ -45,7 +45,7 @@ namespace Disqord.Extensions.Parsers
             }
             else
             {
-                if (input.Contains("ms"))
+                if (input.Contains("ms", StringComparison.InvariantCultureIgnoreCase))
                 {
                     return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`ms` is not supported.)");
                 }
