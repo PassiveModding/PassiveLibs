@@ -32,11 +32,11 @@ namespace Disqord.Extensions.Parsers
         };
 
         // TODO: Compile these expressions
-        private static readonly string TimeSpanExtendedCheck = @"[0-9dhms DHMS]";
+        private static readonly string TimeSpanExtendedCheck = @"[0-9dhms\-. DHMS]";
 
         private static readonly string TimeSpanDelimiter = @"(?<=[dhmsDHMS])";
 
-        private static readonly string TimeSpanDelimitedCheck = @"^[0-9]+[dhmsDHMS]$";
+        private static readonly string TimeSpanDelimitedCheck = @"^-?\d*\.?(\d*)+[dhmsDHMS]$";
 
         public ValueTask<TypeParserResult<TimeSpan>> ParseAsync(string input)
         {
@@ -46,6 +46,11 @@ namespace Disqord.Extensions.Parsers
             }
             else
             {
+                if (input.Contains("ms"))
+                {
+                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`ms` is not supported.)");
+                }
+
                 // Attempt to parse values above what timespan regularly parses, ie. 24h => 1d is not normally possible.
                 if (!Regex.IsMatch(input, TimeSpanExtendedCheck))
                 {
@@ -75,12 +80,15 @@ namespace Disqord.Extensions.Parsers
                         }
 
                         var lastChar = split.Substring(split.Length - 1);
-                        var num = split.Substring(0, split.Length - 1);
+
+                        // Get the number without the trailing character.
+                        var num = split[0..^1];
 
                         if (!double.TryParse(num, out var result))
                         {
                             return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{num}` is not of type `double`)");
                         }
+
                         switch (lastChar.ToLower())
                         {
                             case "d":
