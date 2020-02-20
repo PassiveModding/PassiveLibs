@@ -31,11 +31,11 @@ namespace Disqord.Extensions.Parsers
             "%s's'",                //      1s
         };
 
-        private static readonly string TimeSpanExtendedCheck = @"[0-9dhms\-. DHMS]";
+        private static readonly string TimeSpanExtendedCheck = @"[0-9dhms\-. ]";
 
-        private static readonly string TimeSpanDelimiter = @"(?<=[dhmsDHMS])";
+        private static readonly string TimeSpanDelimiter = @"(?<=[dhms])";
 
-        private static readonly string TimeSpanDelimitedCheck = @"^-?\d*\.?(\d*)+[dhmsDHMS]$";
+        private static readonly string TimeSpanDelimitedCheck = @"^-?\d*\.?(\d*)+[dhms]$";
 
         public ValueTask<TypeParserResult<TimeSpan>> ParseAsync(string input)
         {
@@ -45,9 +45,10 @@ namespace Disqord.Extensions.Parsers
             }
             else
             {
-                if (input.Contains("ms", StringComparison.InvariantCultureIgnoreCase))
+                input = input.ToLower();
+                if (input.Contains("ms"))
                 {
-                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`ms` is not supported.)");
+                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`ms` is not supported)");
                 }
 
                 // Attempt to parse values above what timespan regularly parses, ie. 24h => 1d is not normally possible.
@@ -69,7 +70,12 @@ namespace Disqord.Extensions.Parsers
                 }
                 else
                 {
-                    bool modified = false;
+                    // Faster than setting flags.
+                    bool d = false;
+                    bool h = false;
+                    bool m = false;
+                    bool s = false;
+
                     TimeSpan response = new TimeSpan();
                     foreach (var split in splits)
                     {
@@ -84,6 +90,7 @@ namespace Disqord.Extensions.Parsers
                             return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{split}` is invalid.)");
                         }
 
+                        // Last char should always be a valid character, not sure if this check is necessary.
                         var lastChar = split.Substring(split.Length - 1);
 
                         // Get the number without the trailing character.
@@ -94,36 +101,53 @@ namespace Disqord.Extensions.Parsers
                             return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{num}` is not of type `double`)");
                         }
 
-                        modified = true;
-                        switch (lastChar.ToLower())
+                        switch (lastChar)
                         {
                             case "d":
+                                if (d)
+                                {
+                                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (multiple day setters)");
+                                }
+                                d = true;
                                 response += TimeSpan.FromDays(result);
                                 break;
 
                             case "h":
+                                if (h)
+                                {
+                                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (multiple hour setters)");
+                                }
+                                h = true;
                                 response += TimeSpan.FromHours(result);
                                 break;
 
                             case "m":
+                                if (m)
+                                {
+                                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (multiple minute setters)");
+                                }
+                                m = true;
                                 response += TimeSpan.FromMinutes(result);
                                 break;
 
                             case "s":
+                                if (s)
+                                {
+                                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (multiple seconds setters)");
+                                }
+                                s = true;
                                 response += TimeSpan.FromSeconds(result);
                                 break;
-
-                            default:
-                                return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (`{lastChar}` is not a valid timespan character.)");
                         }
                     }
 
-                    if (modified)
+                    // Check to see if any of the methods were hit.
+                    if (d || h || m || s)
                     {
                         return TypeParserResult<TimeSpan>.Successful(response);
                     }
 
-                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (Timespan has no modifying arguments.)");
+                    return TypeParserResult<TimeSpan>.Unsuccessful($"Failed to parse TimeSpan (Timespan has no modifying arguments)");
                 }
             }
         }
