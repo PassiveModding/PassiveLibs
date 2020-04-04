@@ -13,7 +13,9 @@ namespace Passive.Discord.Setup
         public enum Defaults
         {
             Token,
+
             Prefix,
+
             ShardCount
         }
 

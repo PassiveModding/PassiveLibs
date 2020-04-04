@@ -10,7 +10,10 @@ namespace Disqord.Extensions.Interactivity.Help
     public class HelpMenu : MenuBase
     {
         private readonly Dictionary<string, LocalEmbed> pages = new Dictionary<string, LocalEmbed>();
+
         private LocalEmbed homePage;
+
+        private const string HelpPageEmote = "❓";
 
         public HelpMenu(CommandService commandService)
         {
@@ -41,7 +44,7 @@ namespace Disqord.Extensions.Interactivity.Help
 
             var footerTitles = new List<string>
             {
-                "❓ Help"
+                $"{HelpPageEmote} Help"
             };
 
             footerTitles.AddRange(tempDict.Values.Select(x => x.Title));
@@ -66,7 +69,7 @@ namespace Disqord.Extensions.Interactivity.Help
                     homeBuilder.AddField(new LocalEmbedFieldBuilder
                     {
                         Name = dPage.Value.Title,
-                        Value = string.Join(", ", dPage.Value.Module.Commands.Select(c => '`' + c.Name + '`'))
+                        Value = string.Join(", ", dPage.Value.Module.Commands.Select(c => '`' + c.Name + '`').Distinct())
                     });
 
                     pages.Add(dPage.Key, dPage.Value.Embed.WithFooter(footerContent).Build());
@@ -76,7 +79,7 @@ namespace Disqord.Extensions.Interactivity.Help
             homePage = homeBuilder.Build();
 
             var message = await Channel.SendMessageAsync("", false, homePage);
-            await AddButtonAsync(new Button(new LocalEmoji("❓"), x =>
+            await AddButtonAsync(new Button(new LocalEmoji(HelpPageEmote), x =>
             {
                 return Message.ModifyAsync(m => m.Embed = homePage);
             }));
