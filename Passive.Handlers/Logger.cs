@@ -19,6 +19,7 @@ namespace Passive.Logging
 
                 var filePath = Path.Combine(LogDirectory, SessionLogFileName);
                 writer = File.AppendText(filePath);
+                writer.AutoFlush = true;
                 writerLocker = new object();
             }
         }
