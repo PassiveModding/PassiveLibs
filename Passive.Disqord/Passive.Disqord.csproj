@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Passive.Extensions\Passive.Extensions.csproj" />
+    <ProjectReference Include="..\Passive.Handlers\Passive.Handlers.csproj" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 ﻿using Disqord.Rest;
+using Passive.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -104,6 +105,33 @@ namespace Disqord.Extensions.Passive
                 basePerms += role.Value.Permissions;
             }
             return basePerms;
+        }
+
+        public static Logger.LogLevel GetLevel(this Disqord.Logging.LogMessageSeverity severity)
+        {
+            switch (severity)
+            {
+                case Disqord.Logging.LogMessageSeverity.Trace:
+                    return Logger.LogLevel.Verbose;
+
+                case Disqord.Logging.LogMessageSeverity.Debug:
+                    return Logger.LogLevel.Debug;
+
+                case Disqord.Logging.LogMessageSeverity.Information:
+                    return Logger.LogLevel.Info;
+
+                case Disqord.Logging.LogMessageSeverity.Warning:
+                    return Logger.LogLevel.Warn;
+
+                case Disqord.Logging.LogMessageSeverity.Error:
+                    return Logger.LogLevel.Error;
+
+                case Disqord.Logging.LogMessageSeverity.Critical:
+                    return Logger.LogLevel.Error;
+
+                default:
+                    return Logger.LogLevel.Error;
+            }
         }
     }
 }
