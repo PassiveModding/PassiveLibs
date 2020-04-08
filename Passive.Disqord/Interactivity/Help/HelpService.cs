@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Text;
 using Disqord;
+using Disqord.Extensions.Checks;
 using Qmmands;
 
 namespace Disqord.Extensions.Interactivity.Help
@@ -22,6 +23,7 @@ namespace Disqord.Extensions.Interactivity.Help
                 {
                     builder.AddField(info);
                 }
+                builder.Description = GetModuleInfoDescription(module);
 
                 // TODO: Split based on max embed length (or x amount of fields + specific max length)
                 return builder
@@ -39,7 +41,7 @@ namespace Disqord.Extensions.Interactivity.Help
 
         public static string GetCommandHelp(Command command)
         {
-            return $"{GetCommandInfo(command)}\n{FormatCommand(command)}";
+            return $"**{command.Name}**\n{GetCommandInfo(command)}\n{FormatCommand(command)}";
         }
 
         private static string FormatCommand(Command command)
@@ -53,9 +55,6 @@ namespace Disqord.Extensions.Interactivity.Help
         private static string GetCommandInfo(Command command)
         {
             var sb = new StringBuilder();
-            sb.Append("**");
-            sb.Append(command.Name);
-            sb.AppendLine("**");
 
             if (command.Description != null)
             {
@@ -79,13 +78,42 @@ namespace Disqord.Extensions.Interactivity.Help
             {
                 // TODO: Implement custom checkattribute with name and description
                 sb.AppendLine("**[**Checks**]**");
-                sb.AppendJoin(", ", command.Checks.Select(x => x.GetType().Name));
+
+                foreach (var check in command.Checks)
+                {
+                    if (check is ExtendedCheckAttribute e)
+                    {
+                        sb.AppendLine($"__{e.Name}__\n{e.Description}");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"__{check.GetType().Name}__");
+                    }
+                }
                 sb.AppendLine();
             }
 
             if (!command.IsEnabled)
             {
                 sb.AppendLine("__Command is currently disabled__");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string GetModuleInfoDescription(Module module)
+        {
+            var sb = new StringBuilder();
+            foreach (var check in module.Checks)
+            {
+                if (check is ExtendedCheckAttribute e)
+                {
+                    sb.AppendLine($"__{e.Name}__\n{e.Description}");
+                }
+                else
+                {
+                    sb.AppendLine($"__{check.GetType().Name}__");
+                }
             }
 
             return sb.ToString();
@@ -98,42 +126,7 @@ namespace Disqord.Extensions.Interactivity.Help
                 Name = command.Name
             };
 
-            var sb = new StringBuilder();
-            sb.AppendLine(FormatCommand(command));
-
-            if (command.Description != null)
-            {
-                sb.AppendLine(command.Description);
-            }
-
-            if (command.Remarks != null)
-            {
-                sb.AppendLine("**[**Remarks**]**");
-                sb.AppendLine(command.Remarks);
-            }
-
-            if (command.FullAliases.Count > 1)
-            {
-                sb.AppendLine("**[**Aliases**]**");
-                sb.AppendJoin(", ", command.FullAliases.Select(x => $"`{x}`"));
-                sb.AppendLine();
-            }
-
-            if (command.Checks.Count > 0)
-            {
-                // TODO: Implement custom checkattribute with name and description
-                sb.AppendLine("**[**Checks**]**");
-                sb.AppendJoin(", ", command.Checks.Select(x => x.GetType().Name));
-                sb.AppendLine();
-            }
-
-            if (!command.IsEnabled)
-            {
-                sb.AppendLine("__Command is currently disabled__");
-            }
-
-            field.Value = sb.ToString();
-
+            field.Value = FormatCommand(command) + "\n" + GetCommandInfo(command);
             return field;
         }
 
