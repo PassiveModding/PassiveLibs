@@ -8,7 +8,9 @@ namespace Passive.Discord.Setup
 {
     public class Config
     {
-        private static string savePath = Path.Combine(AppContext.BaseDirectory, "Config.json");
+        public static string FilesPath = Path.Combine(AppContext.BaseDirectory, "files");
+
+        private static string savePath = Path.Combine(FilesPath, "config.json");
 
         public enum Defaults
         {
@@ -28,6 +30,8 @@ namespace Passive.Discord.Setup
             {
                 path = savePath;
             }
+
+            EnsureFilesDirectoryCreated();
 
             if (File.Exists(path))
             {
@@ -54,26 +58,49 @@ namespace Passive.Discord.Setup
                         config = LoadFromFile(o.ConfigPath);
                     });
             }
+            else
+            {
+                EnsureFilesDirectoryCreated();
+            }
 
             config ??= LoadFromFile(null);
             return config;
         }
 
+        private static void EnsureFilesDirectoryCreated()
+        {
+            if (!Directory.Exists(FilesPath))
+            {
+                Directory.CreateDirectory(FilesPath);
+            }
+        }
+
         /// <summary>
         /// Gets the specified entry or adds it and saves the config, returning the newly generated value.
+        /// Will also check for the relevant environment variable
         /// </summary>
         /// <param name="key">The identification key used to locate the value.</param>
         /// <param name="generationMethod">A function used in order to generate a new value for the given key.</param>
         /// <returns>The specified entry for the given key.</returns>
         public string GetOrAddEntry(string key, Func<string> generationMethod)
         {
-            if (!Entries.ContainsKey(key))
+            var value = Environment.GetEnvironmentVariable(key);
+            if (value == null)
             {
-                Entries.Add(key, generationMethod());
-                Save();
-            }
+                if (!Entries.ContainsKey(key))
+                {
+                    Entries.Add(key, generationMethod());
+                    Save();
+                }
 
-            return Entries[key];
+                return Entries[key];
+            }
+            else
+            {
+                Entries[key] = value;
+                Save();
+                return value;
+            }
         }
 
         /// <summary>
