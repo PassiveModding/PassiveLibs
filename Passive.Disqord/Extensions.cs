@@ -133,5 +133,19 @@ namespace Disqord.Extensions.Passive
                     return Logger.LogLevel.Error;
             }
         }
+
+        private static readonly string[] SensitiveCharacters = { "\\", "*", "_", "~", "`", "|", ">" };
+
+        /// <summary>
+        /// Returns a sanitized string for sensitive discord characters.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public static string Sanitize(this string input)
+        {
+            foreach (string unsafeChar in SensitiveCharacters)
+                input = input.Replace(unsafeChar, $"\\{unsafeChar}");
+            return input;
+        }
     }
 }
