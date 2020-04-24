@@ -11,13 +11,18 @@ namespace Passive.Logging
             if (logDirectory != null)
             {
                 LogDirectory = logDirectory;
-                SessionLogFileName = "log-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss") + ".log";
+                SessionLogDirectory = Path.Combine(logDirectory, DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss"));
+                SessionLogFileName = "log0.log";
                 if (!Directory.Exists(LogDirectory))
                 {
                     Directory.CreateDirectory(LogDirectory);
                 }
+                if (!Directory.Exists(SessionLogDirectory))
+                {
+                    Directory.CreateDirectory(SessionLogDirectory);
+                }
 
-                var filePath = Path.Combine(LogDirectory, SessionLogFileName);
+                filePath = Path.Combine(SessionLogDirectory, SessionLogFileName);
                 writer = File.AppendText(filePath);
                 writer.AutoFlush = true;
                 writerLocker = new object();
@@ -28,9 +33,17 @@ namespace Passive.Logging
 
         public string LogDirectory { get; } = null;
 
-        public string SessionLogFileName { get; }
+        public string SessionLogDirectory { get; private set; }
 
-        private StreamWriter writer { get; }
+        public string SessionLogFileName { get; private set; }
+
+        public string filePath { get; private set; }
+
+        private StreamWriter writer { get; set; }
+
+        private int appendCount = 0;
+
+        private int fileIteration = 0;
 
         public object writerLocker;
 
@@ -49,7 +62,18 @@ namespace Passive.Logging
             {
                 lock (writerLocker)
                 {
+                    // Split into new file every 100,000 writes to reduce overall file sizes.
+                    if (appendCount > 100000)
+                    {
+                        appendCount = 0;
+                        fileIteration++;
+                        SessionLogFileName = $"log{fileIteration}.log";
+                        filePath = Path.Combine(SessionLogDirectory, SessionLogFileName);
+                        writer = File.AppendText(filePath);
+                        writer.AutoFlush = true;
+                    }
                     writer.WriteLine(logContent);
+                    appendCount++;
                 }
             }
         }
