@@ -3,12 +3,15 @@ using System.Threading.Tasks;
 using Disqord;
 using Disqord.Bot;
 using Disqord.Extensions.Checks;
+using Disqord.Rest;
 using Qmmands;
 
 namespace Passive.Disqord.Checks
 {
     public sealed class BotTeamOnlyAttribute : ExtendedCheckAttribute
     {
+        private static RestApplication application;
+
         public BotTeamOnlyAttribute()
         { }
 
@@ -19,16 +22,20 @@ namespace Passive.Disqord.Checks
             {
                 case TokenType.Bot:
                     {
-                        var app = await context.Bot.CurrentApplication.GetAsync().ConfigureAwait(false);
-                        if (app.Team != null && app.Team.Members != null)
+                        if (application == null)
                         {
-                            if (app.Team.Members.ContainsKey(context.User.Id))
+                            application = await context.Bot.GetCurrentApplicationAsync().ConfigureAwait(false);
+                        }
+
+                        if (application.Team != null && application.Team.Members != null)
+                        {
+                            if (application.Team.Members.ContainsKey(context.User.Id))
                             {
                                 return CheckResult.Successful;
                             }
                         }
 
-                        return app.Owner.Id == context.User.Id
+                        return application.Owner.Id == context.User.Id
                             ? CheckResult.Successful
                             : CheckResult.Unsuccessful("This can only be executed by the bot's owner or team members.");
                     }
